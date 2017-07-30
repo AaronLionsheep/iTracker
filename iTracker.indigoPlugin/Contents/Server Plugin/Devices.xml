@@ -1,0 +1,124 @@
+<?xml version="1.0"?>
+<!-- If your plugin defines device types, you can define them here.
+
+	 Devices must specify their type (via the type attribute):
+
+		relay (ON/OFF/STATUS)
+		dimmer (ON/OFF/DIM/BRIGHTEN/SET BRIGHTNESS/STATUS)
+		speedcontrol (ON/OFF/SET SPEED LEVEL/SET SPEED INDEX/INCREASE/DECREASE/STATUS)
+		sensor (ON/OFF/STATUS)
+		thermostat
+		sprinkler
+		custom
+
+	 The first six inherit states, actions and events from Indigo. You can
+	 also specify your own custom actions and additional states, if needed.
+	 
+	 All of the Device examples below specify the custom type and therefore
+	 must define their own states and actions. See the other example device
+	 plugins that illustrate overriding an existing native type (relay, dimmer,
+	 thermostat, etc.).
+	 
+	 Devices must also specify a unique typeID - so, for instance, if you define
+	 2 relay type devices then your plugin can distinguish between the two by
+	 the typeID.
+-->
+
+<Devices>
+
+	<Device type="custom" id="iDevice">
+		<Name>iDevice</Name>
+		<ConfigUI>
+
+			<Field id="iCloudDeviceID" type="menu" defaultValue="0">
+				<Label>iCloud Device:</Label>
+				<List class="self" filter="" method="getDeviceList" dynamicReload="true"/>
+			</Field>
+
+		</ConfigUI>
+		<States>
+
+			<State id="latitude">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Current Latitude</TriggerLabel>
+				<ControlPageLabel>Current Latitude</ControlPageLabel>
+			</State>
+			<State id="longitude">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Current Longitude</TriggerLabel>
+				<ControlPageLabel>Current Longitude</ControlPageLabel>
+			</State>
+			<State id="battery">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Current Battery Level</TriggerLabel>
+				<ControlPageLabel>Current Battery Level</ControlPageLabel>
+			</State>
+            <State id="previous_location">
+                <ValueType>String</ValueType>
+                <TriggerLabel>Previous Location</TriggerLabel>
+                <TriggerLabelPrefix>Previous Location</TriggerLabelPrefix>
+                <ControlPageLabel>Previous Location</ControlPageLabel>
+                <ControlPageLabelPrefix>Previous Location was</ControlPageLabelPrefix>
+            </State>
+            <State id="location">
+                <ValueType>String</ValueType>
+                <TriggerLabel>Current Location</TriggerLabel>
+                <TriggerLabelPrefix>Current Location</TriggerLabelPrefix>
+                <ControlPageLabel>Current Location</ControlPageLabel>
+                <ControlPageLabelPrefix>Current Location is</ControlPageLabelPrefix>
+            </State>
+			<State id="iCloudDeviceID">
+				<ValueType>String</ValueType>
+				<TriggerLabel>iCloud Device ID</TriggerLabel>
+				<ControlPageLabel>iCloud Device ID</ControlPageLabel>
+			</State>
+
+		</States>
+		<UiDisplayStateId>location</UiDisplayStateId>
+	</Device>
+
+	<Device type="custom" id="iLocation">
+		<Name>iLocation</Name>
+		<ConfigUI>
+
+			<Field id="latitude" type="textfield">
+				<Label>Location latitude</Label>
+			</Field>
+
+			<Field id="longitude" type="textfield">
+				<Label>Location longitude</Label>
+			</Field>
+
+			<Field id="radius" type="textfield">
+				<Label>Detection radius</Label>
+			</Field>
+
+		</ConfigUI>
+		<States>
+
+			<State id="deviceCount">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Current Number of iDevices at this Location</TriggerLabel>
+				<ControlPageLabel>Current Number of iDevices at this Location</ControlPageLabel>
+			</State>
+            <State id="latitude">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Location Latitude</TriggerLabel>
+				<ControlPageLabel>Location Latitude</ControlPageLabel>
+			</State>
+			<State id="longitude">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Location Longitude</TriggerLabel>
+				<ControlPageLabel>Location Longitude</ControlPageLabel>
+			</State>
+            <State id="radius">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Location Radius</TriggerLabel>
+				<ControlPageLabel>Location Radius</ControlPageLabel>
+			</State>
+
+		</States>
+
+		<UiDisplayStateId>deviceCount</UiDisplayStateId>
+	</Device>
+</Devices>

@@ -1,0 +1,52 @@
+<?xml version="1.0"?>
+<PluginConfig>
+
+    <Field id="iCloudEmail" type="textfield" defaultValue="">
+        <Label>iCloud Email:</Label>
+    </Field>
+
+    <Field id="iCloudPassword" type="textfield" secure="true" defaultValue="">
+        <Label>iCloud Password:</Label>
+    </Field>
+
+    <Field id="testConnection" type="button">
+        <Label>Test iCloud API Connection:</Label>
+        <Title>Login </Title>
+        <CallbackMethod>testLogin</CallbackMethod>
+    </Field>
+
+    <Field id="iCloud2FADevices" type="menu" defaultValue="0">
+        <Label>2FA Device:</Label>
+        <List class="self" filter="" method="get2FADevices" dynamicReload="true"/>
+    </Field>
+
+    <Field id="select2FADevice" type="button">
+        <Label>Select 2FA Device:</Label>
+        <Title>Select</Title>
+        <CallbackMethod>select2FADevice</CallbackMethod>
+    </Field>
+
+    <Field id="iCloud2FAKey" type="textfield" defaultValue="">
+        <Label>iCloud 2FA Key:</Label>
+    </Field>
+
+    <Field id="submit2FA" type="button">
+        <Label>Submit 2FA Key:</Label>
+        <Title>Go </Title>
+        <CallbackMethod>submit2FAKey</CallbackMethod>
+    </Field>
+
+    <Field type="menu" id="units" defaultValue="mi">
+        <Label>Preferred Units:</Label>
+        <List>
+            <Option value="mi">Miles</Option>
+            <Option value="km">Kilometers</Option>
+        </List>
+    </Field>
+
+    <Field id="refresh_period" type="textfield" defaultValue="30">
+        <Label>Refresh Period (seconds):</Label>
+    </Field>
+
+
+</PluginConfig>

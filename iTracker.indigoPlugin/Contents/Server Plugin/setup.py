@@ -7,9 +7,6 @@ import os
 with open('requirements.txt') as f:
     required = f.read().splitlines()
 
-os.system("say hello")
-
-
 setup(
     name='pyicloud',
     version='0.9.1',

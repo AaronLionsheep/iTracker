@@ -7,7 +7,7 @@
 -->
 <MenuItems>
 	<MenuItem id="menu1">
-		<Name>Time Warp!</Name>
-		<CallbackMethod>timeWarp</CallbackMethod>
+		<Name>Poll Devices</Name>
+		<CallbackMethod>pollDevices</CallbackMethod>
 	</MenuItem>
 </MenuItems>

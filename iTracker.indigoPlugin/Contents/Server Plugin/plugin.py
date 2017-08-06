@@ -120,6 +120,7 @@ class Plugin(indigo.PluginBase):
             self.debugLog(u"iCloud token: %s" % token)
             device = indigo.devices[devId]
             device.updateStateOnServer('iCloudDeviceID', value=token)
+            device.updateStateOnServer('accuracyThreshold', value=valuesDict["accuracyThreshold"])
         elif typeId == "iLocation" and userCancelled is False:
             for value in valuesDict:
                 self.debugLog(u"%s: %s" % (value, valuesDict[value]))
@@ -135,100 +136,123 @@ class Plugin(indigo.PluginBase):
     def shutdown(self):
         self.debugLog(u"shutdown called")
 
+    def pollDevices(self):
+        email = self.pluginPrefs.get("iCloudEmail", None)
+        password = self.pluginPrefs.get("iCloudPassword", None)
+        if email is not None and password is not None:
+            self.login(email, password)
+        else:
+            self.logger.error(u"Email/Password is required for iTracker device tracking")
+            self.api = None
+
+        if self.api is not None:
+            # indigo.server.log(u"Found %s devices in iCloud" % ( self.api.devices ))
+            for device in indigo.devices.iter("self.iDevice"):
+                indigo.server.log(u"Updating %s..." % device.name)
+
+                token = device.states.get("iCloudDeviceID")
+                self.debugLog(u"Loading data for iCloud device: %s" % token)
+                iDevice = self.api.devices[token]
+
+                try:
+                    latitude = iDevice.location()['latitude']
+                    longitude = iDevice.location()['longitude']
+                    accuracy = iDevice.location()['horizontalAccuracy']
+                    battery = round(iDevice.status()['batteryLevel'] * 100, 1)
+
+                    self.debugLog(u"Setting latitude to: %s" % latitude)
+                    device.updateStateOnServer('latitude', value=latitude)
+                    self.debugLog(u"Setting longitude to: %s" % longitude)
+                    device.updateStateOnServer('longitude', value=longitude)
+                    self.debugLog(u"Setting accuracy to: %s" % accuracy)
+                    device.updateStateOnServer('accuracy', value=accuracy)
+                    self.debugLog(u"Setting battery to: %s%%" % battery)
+                    device.updateStateOnServer('battery', value=battery)
+                    for state in device.states:
+                        self.debugLog(u"%s: %s" % (state, device.states[state]))
+
+                    closestLocation = None
+                    closestDistance = sys.maxint
+                    smallestRadius = sys.maxint
+                    self.debugLog(accuracy)
+                    self.debugLog(device.states.get("accuracyThreshold"))
+                    if accuracy <= device.states.get("accuracyThreshold"):
+                        for location in indigo.devices.iter("self.iLocation"):
+                            if location.states['latitude'] is not None and location.states['longitude'] is not None and \
+                                            location.states['radius'] is not None:
+                                distance = self.haversine(float(device.states['longitude']),
+                                                          float(device.states['latitude']),
+                                                          float(location.states['longitude']),
+                                                          float(location.states['latitude']))
+                                self.debugLog(
+                                    u"Distance from %s: %s%s" % (location.name, distance, self.pluginPrefs['units']))
+
+                                # distance_from_device.name_to_location.name
+                                variable_name = "distance_from_%s_to_%s" % (
+                                    device.name.replace(' ', '-'), location.name.replace(' ', '-'))
+                                if variable_name not in indigo.variables:
+                                    indigo.variable.create(name=variable_name, value=str(round(distance, 5)),
+                                                           folder=indigo.variables.folders['iDevice Data'])
+                                else:
+                                    indigo.variable.updateValue(indigo.variables[variable_name],
+                                                                value=str(round(distance, 5)))
+
+                                if distance < location.states['radius'] and distance < closestDistance and location.states[
+                                    'radius'] < smallestRadius:
+                                    closestLocation = location
+                                    closestDistance = distance
+                                    smallestRadius = location.states['radius']
+                            else:
+                                self.logger.error(
+                                    u"Unable to check \"%s\". A Latitude, Longitude, and radius are required for distance calculations." % location.name)
+
+                        if closestLocation is not None:
+                            self.debugLog(u"%s is closest to %s (%s %s)" % (
+                                device.name, closestLocation.name, round(closestDistance, 5),
+                                self.pluginPrefs.get("units")))
+                            device.updateStateOnServer('previous_location', value=device.states['location'])
+                            device.updateStateOnServer('location', value=closestLocation.name)
+                        else:
+                            self.debugLog(
+                                u"%s is not close enough to any specified location. %s will be marked as \"Away\"" % (
+                                    device.name, device.name))
+                            device.updateStateOnServer('previous_location', value=device.states['location'])
+                            device.updateStateOnServer('location', value="Away")
+                    else:
+                        self.logger.warning(u"Location accuracy not within threshold, skipping state update.")
+                except Exception as e:
+                    self.logger.error(e)
+                    self.logger.error(
+                        u"Could not read data from %s. Are they sharing their location with you?" % device.name)
+                    pass
+
+            for location in indigo.devices.iter("self.iLocation"):
+                indigo.server.log(u"Updating device count for: %s" % location.name)
+                devices = []
+                for device in indigo.devices.iter("self.iDevice"):
+                    # if device.states['location'] == location.name:
+                    #    devices.append(device.name)
+                    distance = self.haversine(float(device.states['longitude']), float(device.states['latitude']),
+                                              float(location.states['longitude']), float(location.states['latitude']))
+                    if distance < location.states['radius']:
+                        devices.append(device.name)
+                location.updateStateOnServer('deviceCount', value=len(devices))
+                if len(devices) == 1:
+                    self.debugLog(u"    found 1 device (%s)" % devices[0])
+                elif len(devices) != 0:
+                    self.debugLog(u"    found %s devices (%s)" % (len(devices), ", ".join(devices)))
+                else:
+                    self.debugLog(u"    no devices found")
+
     def runConcurrentThread(self):
         try:
             while True:
-                duration = None
                 start = time.time()
-                email = self.pluginPrefs.get("iCloudEmail", None)
-                password = self.pluginPrefs.get("iCloudPassword", None)
-                if email is not None and password is not None:
-                    self.login(email, password)
-                else:
-                    self.logger.error(u"Email/Password is required for iTracker device tracking")
-                    self.api = None
-
-                if self.api is not None:
-                    #indigo.server.log(u"Found %s devices in iCloud" % ( self.api.devices ))
-                    for device in indigo.devices.iter("self.iDevice"):
-                        indigo.server.log(u"Updating %s..." % device.name)
-
-                        token = device.states.get("iCloudDeviceID")
-                        self.debugLog(u"Loading data for iCloud device: %s" % token)
-                        iDevice = self.api.devices[token]
-
-                        try:
-                            latitude = iDevice.location()['latitude']
-                            longitude = iDevice.location()['longitude']
-                            battery = round(iDevice.status()['batteryLevel']*100, 1)
-
-                            self.debugLog(u"Setting latitude to: %s" % latitude)
-                            device.updateStateOnServer('latitude', value=latitude)
-                            self.debugLog(u"Setting longitude to: %s" % longitude)
-                            device.updateStateOnServer('longitude', value=longitude)
-                            self.debugLog(u"Setting battery to: %s%%" % battery)
-                            device.updateStateOnServer('battery', value=battery)
-                            for state in device.states:
-                                self.debugLog(u"%s: %s" % (state, device.states[state]))
-
-                            closestLocation = None
-                            closestDistance = sys.maxint
-                            smallestRadius = sys.maxint
-                            for location in indigo.devices.iter("self.iLocation"):
-                                if location.states['latitude'] is not None and location.states['longitude'] is not None and location.states['radius'] is not None:
-                                    distance = self.haversine(float(device.states['longitude']), float(device.states['latitude']), float(location.states['longitude']), float(location.states['latitude']))
-                                    self.debugLog(u"Distance from %s: %s%s" % (location.name, distance, self.pluginPrefs['units']))
-
-                                    # distance_from_device.name_to_location.name
-                                    variable_name = "distance_from_%s_to_%s" % (device.name.replace(' ', '-'), location.name.replace(' ', '-'))
-                                    if variable_name not in indigo.variables:
-                                        indigo.variable.create(name=variable_name, value=str(round(distance, 5)), folder=indigo.variables.folders['iDevice Data'])
-                                    else:
-                                        indigo.variable.updateValue(indigo.variables[variable_name], value=str(round(distance, 5)))
-
-                                    if distance < location.states['radius'] and distance < closestDistance and location.states['radius'] < smallestRadius:
-                                        closestLocation = location
-                                        closestDistance = distance
-                                        smallestRadius = location.states['radius']
-                                else:
-                                    self.logger.error(u"Unable to check \"%s\". A Latitude, Longitude, and radius are required for distance calculations." % location.name)
-
-                            if closestLocation is not None:
-                                self.debugLog(u"%s is closest to %s (%s %s)" % (device.name, closestLocation.name, round(closestDistance, 5), self.pluginPrefs.get("units")))
-                                device.updateStateOnServer('previous_location', value=device.states['location'])
-                                device.updateStateOnServer('location', value=closestLocation.name)
-                            else:
-                                self.debugLog(u"%s is not close enough to any specified location. %s will be marked as \"Away\"" % (device.name, device.name))
-                                device.updateStateOnServer('previous_location', value=device.states['location'])
-                                device.updateStateOnServer('location', value="Away")
-                        except Exception as e:
-                            self.logger.error(e)
-                            self.logger.error(u"Could not read data from %s. Are they sharing their location with you?" % device.name)
-                            pass
-
-                    for location in indigo.devices.iter("self.iLocation"):
-                        indigo.server.log(u"Updating device count for: %s" % location.name)
-                        devices = []
-                        for device in indigo.devices.iter("self.iDevice"):
-                            #if device.states['location'] == location.name:
-                            #    devices.append(device.name)
-                            distance = self.haversine(float(device.states['longitude']), float(device.states['latitude']), float(location.states['longitude']), float(location.states['latitude']))
-                            if distance < location.states['radius']:
-                                devices.append(device.name)
-                        location.updateStateOnServer('deviceCount', value=len(devices))
-                        if len(devices) == 1:
-                            self.debugLog(u"    found 1 device (%s)" % devices[0])
-                        elif len(devices) != 0:
-                            self.debugLog(u"    found %s devices (%s)" % (len(devices), ", ".join(devices)))
-                        else:
-                            self.debugLog(u"    no devices found")
-
-                    end = time.time()
-                    duration = round(end - start, 2)
-                    indigo.server.log("Completed in %s seconds" % str(duration))
+                self.pollDevices()
+                end = time.time()
 
                 indigo.server.log(u"Checking iCloud API again in %s seconds..." % self.pluginPrefs.get("refresh_period", 60))
-                self.sleep(int(self.pluginPrefs.get("refresh_period", 60)) - float(duration or 0))
+                self.sleep(int(self.pluginPrefs.get("refresh_period", 60)) - float(end-start))
                 duration = None
         except self.StopThread:
             pass  # Optionally catch the StopThread exception and do any needed cleanup.

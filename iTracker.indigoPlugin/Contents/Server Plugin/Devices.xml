@@ -35,6 +35,10 @@
 				<List class="self" filter="" method="getDeviceList" dynamicReload="true"/>
 			</Field>
 
+			<Field id="accuracyThreshold" type="textfield" defaultValue="100">
+				<Label>Accuracy Threshold</Label>
+			</Field>
+
 		</ConfigUI>
 		<States>
 
@@ -47,6 +51,16 @@
 				<ValueType>Number</ValueType>
 				<TriggerLabel>Current Longitude</TriggerLabel>
 				<ControlPageLabel>Current Longitude</ControlPageLabel>
+			</State>
+            <State id="accuracy">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Location Accuracy</TriggerLabel>
+				<ControlPageLabel>Location Accuracy</ControlPageLabel>
+			</State>
+			<State id="accuracyThreshold">
+				<ValueType>Number</ValueType>
+				<TriggerLabel>Accuracy Threshold</TriggerLabel>
+				<ControlPageLabel>Accuracy Threshold</ControlPageLabel>
 			</State>
 			<State id="battery">
 				<ValueType>Number</ValueType>

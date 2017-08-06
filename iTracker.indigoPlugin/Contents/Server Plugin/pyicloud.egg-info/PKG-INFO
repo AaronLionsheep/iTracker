@@ -1,0 +1,17 @@
+Metadata-Version: 1.1
+Name: pyicloud
+Version: 0.9.1
+Summary: PyiCloud is a module which allows pythonistas to interact with iCloud webservices.
+Home-page: https://github.com/picklepete/pyicloud
+Author: The PyiCloud Authors
+Author-email:  
+License: MIT
+Description: UNKNOWN
+Platform: UNKNOWN
+Classifier: Intended Audience :: Developers
+Classifier: Operating System :: OS Independent
+Classifier: Programming Language :: Python
+Classifier: Programming Language :: Python :: 2.6
+Classifier: Programming Language :: Python :: 2.7
+Classifier: Programming Language :: Python :: 3
+Classifier: License :: OSI Approved :: MIT License
